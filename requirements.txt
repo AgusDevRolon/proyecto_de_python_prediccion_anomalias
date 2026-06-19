@@ -1,0 +1,13 @@
+# --- Entorno de Ciencia de Datos y Machine Learning ---
+pandas
+matplotlib
+seaborn
+scikit-learn
+jupyter
+
+# --- Servidor / Backend ---
+fastapi
+uvicorn[standard]
+
+# --- Interfaz de Usuario / Frontend ---
+streamlit
