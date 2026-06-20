@@ -53,5 +53,5 @@ def predict(data: InputData):
     pred = artefactos["modelo"].predict(df)[0]
     proba = artefactos["modelo"].predict_proba(df)[0].max()
 
-    label = "normal" if pred == 0 else "ataque"
+    label = "ataque" if pred == 0 else "normal"
     return {"prediccion": label, "probabilidad": round(float(proba), 4)}
