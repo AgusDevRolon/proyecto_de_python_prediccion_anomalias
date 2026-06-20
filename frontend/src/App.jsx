@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./App.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -32,6 +32,7 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const resultRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -56,6 +57,7 @@ function App() {
       if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
       const data = await res.json();
       setResult(data);
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -63,131 +65,174 @@ function App() {
     }
   };
 
+  const handleReset = () => {
+    setForm(initialForm);
+    setResult(null);
+    setError(null);
+  };
+
+  const isAtaque = result?.prediccion === "ataque";
+
   return (
-    <div className="app">
-      <header className="header">
-        <h1>Detección de Anomalías</h1>
-        <p>Detección de tráfico malicioso en redes NSL-KDD</p>
-      </header>
+    <>
+      <div className="bg" />
+      <div className="bg-overlay" />
+      <div className="orb orb-1" />
+      <div className="orb orb-2" />
+      <div className="orb orb-3" />
+      <div className="grid-pattern" />
 
-      <main className="main">
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <label>
-              Protocolo
-              <select
-                name="protocol_type"
-                value={form.protocol_type}
-                onChange={handleChange}
-              >
-                {PROTOCOL_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </label>
+      <div className="app">
+        <header className="header">
+          <div className="header-badge">Machine Learning</div>
+          <h1>Detección de Anomalías</h1>
+          <p>Clasificación de tráfico de red con inteligencia artificial</p>
+        </header>
 
-            <label>
-              Servicio
-              <select
-                name="service"
-                value={form.service}
-                onChange={handleChange}
-              >
-                {SERVICE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <main className="main">
+          <div className="form-wrapper">
+            <form className="form" onSubmit={handleSubmit}>
+              <div className="form-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2a10 10 0 1 0 10 10" strokeLinecap="round" />
+                  <path d="M12 6v6l4 2" strokeLinecap="round" />
+                </svg>
+                Parámetros de entrada
+              </div>
 
-            <label>
-              logged_in
-              <select
-                name="logged_in"
-                value={form.logged_in}
-                onChange={handleChange}
-              >
-                <option value={0}>No</option>
-                <option value={1}>Sí</option>
-              </select>
-            </label>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Protocolo</label>
+                  <select name="protocol_type" value={form.protocol_type} onChange={handleChange}>
+                    {PROTOCOL_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Servicio</label>
+                  <select name="service" value={form.service} onChange={handleChange}>
+                    {SERVICE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>logged_in</label>
+                  <select name="logged_in" value={form.logged_in} onChange={handleChange}>
+                    <option value={0}>No</option>
+                    <option value={1}>Sí</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Duración</label>
+                  <input type="number" name="duration" value={form.duration} onChange={handleChange} min="0" />
+                </div>
+
+                <div className="form-group">
+                  <label>src_bytes</label>
+                  <input type="number" name="src_bytes" value={form.src_bytes} onChange={handleChange} min="0" />
+                </div>
+
+                <div className="form-group">
+                  <label>dst_bytes</label>
+                  <input type="number" name="dst_bytes" value={form.dst_bytes} onChange={handleChange} min="0" />
+                </div>
+
+                <div className="form-group">
+                  <label>Count</label>
+                  <input type="number" name="count" value={form.count} onChange={handleChange} min="0" />
+                </div>
+              </div>
+
+              <div className="btn-wrap">
+                <button type="submit" className="btn-predict" disabled={loading}>
+                  <span>
+                    {loading ? (
+                      <span className="loading-dots">
+                        <span /><span /><span />
+                      </span>
+                    ) : (
+                      <>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M12 2a10 10 0 1 0 10 10" />
+                          <path d="M12 6v6l4 2" />
+                        </svg>
+                        Predecir
+                      </>
+                    )}
+                  </span>
+                </button>
+              </div>
+            </form>
           </div>
 
-          <div className="form-row">
-            <label>
-              Duración
-              <input
-                type="number"
-                name="duration"
-                value={form.duration}
-                onChange={handleChange}
-                min="0"
-              />
-            </label>
+          {error && (
+            <div className="error">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              {error}
+            </div>
+          )}
 
-            <label>
-              src_bytes
-              <input
-                type="number"
-                name="src_bytes"
-                value={form.src_bytes}
-                onChange={handleChange}
-                min="0"
-              />
-            </label>
+          {result && (
+            <div className={`result ${isAtaque ? "result-danger" : "result-safe"}`} ref={resultRef}>
+              <div className="result-icon">{isAtaque ? "🚨" : "✅"}</div>
+              <h3>Resultado</h3>
+              <div className="prediction-label">
+                {isAtaque ? "Ataque detectado" : "Tráfico normal"}
+              </div>
 
-            <label>
-              dst_bytes
-              <input
-                type="number"
-                name="dst_bytes"
-                value={form.dst_bytes}
-                onChange={handleChange}
-                min="0"
-              />
-            </label>
+              <div className="confidence-bar">
+                <div className="confidence-fill" style={{ width: `${(result.probabilidad * 100).toFixed(0)}%` }} />
+              </div>
+              <div className="confidence-text">
+                Confianza: <strong>{(result.probabilidad * 100).toFixed(1)}%</strong>
+              </div>
 
-            <label>
-              Count
-              <input
-                type="number"
-                name="count"
-                value={form.count}
-                onChange={handleChange}
-                min="0"
-              />
-            </label>
-          </div>
+              <div className="details-grid">
+                <div className="detail-item">
+                  <div className="detail-label">Protocolo</div>
+                  <div className="detail-value">{form.protocol_type}</div>
+                </div>
+                <div className="detail-item">
+                  <div className="detail-label">Servicio</div>
+                  <div className="detail-value">{form.service}</div>
+                </div>
+                <div className="detail-item">
+                  <div className="detail-label">logged_in</div>
+                  <div className="detail-value">{form.logged_in === 1 ? "Sí" : "No"}</div>
+                </div>
+                <div className="detail-item">
+                  <div className="detail-label">src_bytes</div>
+                  <div className="detail-value">{form.src_bytes.toLocaleString()}</div>
+                </div>
+                <div className="detail-item">
+                  <div className="detail-label">dst_bytes</div>
+                  <div className="detail-value">{form.dst_bytes.toLocaleString()}</div>
+                </div>
+                <div className="detail-item">
+                  <div className="detail-label">Count</div>
+                  <div className="detail-value">{form.count}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
 
-          <button type="submit" className="btn-predict" disabled={loading}>
-            {loading ? "Prediciendo..." : "Predecir"}
-          </button>
-        </form>
-
-        {error && <div className="error">{error}</div>}
-
-        {result && (
-          <div className={`result ${result.prediccion}`}>
-            <h2>Resultado</h2>
-            <p className="prediction">
-              <span className="label">Predicción:</span>{" "}
-              <strong>{result.prediccion === "ataque" ? "🚨 Ataque" : "✅ Normal"}</strong>
-            </p>
-            <p className="probability">
-              <span className="label">Confianza:</span>{" "}
-              {(result.probabilidad * 100).toFixed(1)}%
-            </p>
-          </div>
-        )}
-      </main>
-
-      <footer className="footer">
-        <p>TP Final - Python para Ciencia de Datos</p>
-      </footer>
-    </div>
+        <footer className="footer">
+          <strong>TP Final</strong> &mdash; Python para Ciencia de Datos
+        </footer>
+      </div>
+    </>
   );
 }
 
