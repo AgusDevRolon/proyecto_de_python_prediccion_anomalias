@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
@@ -20,6 +21,13 @@ scaler = artefactos["scaler"]
 columnas_esperadas = list(artefactos["columnas"])
 
 app = FastAPI(title="Trabajo Integrador de Python")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class PredictionInput(BaseModel):
@@ -53,9 +61,10 @@ def predict(datos: PredictionInput):
         raise HTTPException(status_code=500, detail="No se pudo alinear la entrada con las columnas del modelo")
 
     prediccion = int(modelo.predict(entrada_final)[0])
-    etiqueta = "ataque" if prediccion == 1 else "normal"
+    probabilidad = float(modelo.predict_proba(entrada_final)[0].max())
+    etiqueta = "ataque" if prediccion == 0 else "normal"
 
-    return {"prediccion": prediccion, "etiqueta": etiqueta}
+    return {"prediccion": etiqueta, "probabilidad": round(probabilidad, 4)}
 
 
 if __name__ == "__main__":
