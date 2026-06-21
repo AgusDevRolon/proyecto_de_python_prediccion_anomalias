@@ -38,7 +38,7 @@ function App() {
     const { name, value, type } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "number" ? Number(value) : value,
+      [name]: type === "number" || name === "logged_in" ? Number(value) : value,
     }));
   };
 
