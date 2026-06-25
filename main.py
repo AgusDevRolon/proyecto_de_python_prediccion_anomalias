@@ -50,19 +50,34 @@ def read_root():
 
 @app.post("/predict")
 def predict(datos: PredictionInput):
+    # 1. Convertir la entrada recibida en un DataFrame de una fila
     entrada = pd.DataFrame([datos.model_dump()])
+    
+    # 2. Aplicar One-Hot Encoding a las variables categóricas
     entrada_codificada = pd.get_dummies(entrada, columns=["protocol_type", "service"], dtype=int)
-    entrada_codificada[["duration", "src_bytes", "dst_bytes", "count"]] = scaler.transform(
-        entrada_codificada[["duration", "src_bytes", "dst_bytes", "count"]]
-    )
+    
+    # 3. CORRECCIÓN AQUÍ: Primero alineamos las 71 columnas esperadas
+    # Esto creará las columnas que faltan y las rellenará con 0
     entrada_final = entrada_codificada.reindex(columns=columnas_esperadas, fill_value=0)
 
     if entrada_final.shape[1] != len(columnas_esperadas):
         raise HTTPException(status_code=500, detail="No se pudo alinear la entrada con las columnas del modelo")
 
-    prediccion = int(modelo.predict(entrada_final)[0])
-    probabilidad = float(modelo.predict_proba(entrada_final)[0].max())
-    etiqueta = "ataque" if prediccion == 0 else "normal"
+    # 4. Ahora que tiene las 71 columnas en el orden exacto, escalamos TODO el DataFrame
+    entrada_escalada = scaler.transform(entrada_final)
+
+# 5. Realizar la predicción final usando los datos ya escalados
+    # Quitamos el int() porque el modelo ya devuelve texto directamente ('normal', 'ataque', etc.)
+    prediccion_raw = modelo.predict(entrada_escalada)[0] 
+    
+    probabilidad = float(modelo.predict_proba(entrada_escalada)[0].max())
+    
+    # Adaptamos la etiqueta por si el modelo devuelve algo ligeramente distinto
+    # Si el modelo ya devuelve 'normal', lo dejamos pasar; si no, lo evalúa.
+    if prediccion_raw in ["normal", "ataque"]:
+        etiqueta = prediccion_raw
+    else:
+        etiqueta = "normal" if prediccion_raw == 1 else "ataque"
 
     return {"prediccion": etiqueta, "probabilidad": round(probabilidad, 4)}
 
